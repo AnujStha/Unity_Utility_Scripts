@@ -1,17 +1,16 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
 public class PlayerController : MonoBehaviour
 {
     public bool allowWallJump, allowDash;
-    private bool jumpBtn, jumpBtnDown, grounded, dashBtnDown, dashReady, dashing, wallGrab = false;
+    private bool jumpBtn, jumpBtnDown, grounded, dashBtnDown, dashReady, dashing,wallStick=false;
     public Transform groundCheckPoint, wallCheckRight, wallCheckLeft;
     public Vector2 groundCheckBoxCastSize, wallCheckBoxCastSizeRight, wallCheckBoxCastSizeLeft;
     public LayerMask platformLayer;
     public bool facingRight;
-    private float lr, jumpedSteps;
+    private float lr, jumpedSteps, lrRaw = 0;
     private Rigidbody2D playerRb;
     public float horizontalSpeed, jumpVelocity, maxVerticalVelocity, dashTime, dashSpeed, dashInterval, wallJumpSideForce, wallJumpHorizontalForce, externalForceDecayFactorPerSec;
     public Vector2 velocity;
@@ -19,7 +18,8 @@ public class PlayerController : MonoBehaviour
     public float maxJumpSteps;
     public int airJumps;
     private int airJumpsRemaining;
-    public UnityEvent groundJumpStartEvent, LandEvent, dashStartEvent, dashEndEvent, AirJumpStartEvent, rightWallGrabEvent, leftWallGrabEvent, WallReleaseEvent, wallJumpEvent;
+    public UnityEvent groundJumpStartEvent, LandEvent, dashStartEvent, dashEndEvent, AirJumpStartEvent, rightWallSlideEvent, leftWallSlideEvent, WallSlideReleaseEvent, wallJumpEvent;
+    public GameObject playerSprite;
     private void Awake()
     {
         velocity = new Vector2(0, 0);
@@ -31,14 +31,15 @@ public class PlayerController : MonoBehaviour
         if (dashStartEvent == null) dashStartEvent = new UnityEvent();
         if (dashEndEvent == null) dashEndEvent = new UnityEvent();
         if (AirJumpStartEvent == null) AirJumpStartEvent = new UnityEvent();
-        if (rightWallGrabEvent == null) rightWallGrabEvent = new UnityEvent();
-        if (leftWallGrabEvent == null) leftWallGrabEvent = new UnityEvent();
-        if (WallReleaseEvent == null) WallReleaseEvent = new UnityEvent();
+        if (rightWallSlideEvent == null) rightWallSlideEvent = new UnityEvent();
+        if (leftWallSlideEvent == null) leftWallSlideEvent = new UnityEvent();
+        if (WallSlideReleaseEvent == null) WallSlideReleaseEvent = new UnityEvent();
     }
     private void Update()
     {
         jumpBtn = Input.GetButton("Jump");
         lr = Input.GetAxis("Horizontal");
+        lrRaw = Input.GetAxisRaw("Horizontal");
         if (Input.GetButtonDown("Dash"))
         {
             dashBtnDown = true;
@@ -64,10 +65,10 @@ public class PlayerController : MonoBehaviour
         }
         if (GroundedCheck())
         {
-            if (wallGrab)
+            if (wallStick)
             {
-                wallGrab = false;
-                WallReleaseEvent.Invoke();
+                wallStick = false;
+                WallSlideReleaseEvent.Invoke();
             }
             if (grounded == false)
             {
@@ -80,6 +81,7 @@ public class PlayerController : MonoBehaviour
                 jumpBtnDown = false;
             }
             if (jumpBtn) {
+                //if()
                 flight();
             }
         }
@@ -89,33 +91,45 @@ public class PlayerController : MonoBehaviour
             int walled = WallCheck();
             if (walled != 0)
             {
-                if (!wallGrab) {
-                    wallGrab = true;
-                    airJumpsRemaining = airJumps;
-                    if (walled == 1)
-                    {
-                        rightWallGrabEvent.Invoke();
-                    }
-                    else
-                    {
-                        leftWallGrabEvent.Invoke();
-
-                    }
-                }
                 if (jumpBtnDown)
                 {
                     TriggerWallJump(walled);
                     jumpBtnDown = false;
                 }
-                wallSlide();
+                if (walled == 1)
+                {
+                    if (wallStick == false && lrRaw > 0) {
+                        wallStick = true;
+                        rightWallSlideEvent.Invoke();
+                    }
+                    else if (wallStick == true && lrRaw < 0)
+                    {
+                        wallStick = false;
+                        WallSlideReleaseEvent.Invoke();
+                    }
+                }
+                else if (walled == -1)
+                {
+                    if (wallStick == false && lrRaw < 0) {
+                        wallStick = true;
+                        leftWallSlideEvent.Invoke();
+                    }
+                    else if (wallStick == true && lrRaw > 0) {
+                        wallStick = false;
+                        WallSlideReleaseEvent.Invoke();
+                    }
+                }
+                if (wallStick)
+                {
+                    wallSlide();
+                    airJumpsRemaining = airJumps;
+                }
+                else if (jumpBtn) {
+                    flight();
+                }
             }
             else
             {
-                if (wallGrab)
-                {
-                    wallGrab = false;
-                    WallReleaseEvent.Invoke();
-                }
                 if (jumpBtnDown)
                 {
                     TriggerAirJump();
@@ -184,7 +198,7 @@ public class PlayerController : MonoBehaviour
     }
     void TriggerGrounded() {
         airJumpsRemaining = airJumps;
-        jumpedSteps = 0;
+        //jumpedSteps = 0;
         LandEvent.Invoke();
     }
     void TriggerGroundJump()
@@ -197,6 +211,7 @@ public class PlayerController : MonoBehaviour
         jumpedSteps = 0;//??in wallGrab?
         wallJumpEvent.Invoke();
         externalForce.x += -walled * wallJumpHorizontalForce;
+        flip();
     }
     public void AddForce(Vector2 force) {
         externalForce += force;
@@ -213,7 +228,6 @@ public class PlayerController : MonoBehaviour
     {
         if (playerRb.velocity.y < 0)
             velocity.y = wallJumpSideForce;
-        ///TODO: wallSlide
     }
     void MoveHorizontal()
     {
@@ -252,9 +266,10 @@ public class PlayerController : MonoBehaviour
     void flip()
     {
         facingRight = !facingRight;
+        playerSprite.transform.localScale=new Vector2(playerSprite.transform.localScale.x*-1,playerSprite.transform.localScale.y);
     }
     public void transfer(Vector3 position) {
-        transform.position = position;
+        transform.position = position; 
     } 
     private void OnDrawGizmosSelected()
     {
@@ -263,3 +278,4 @@ public class PlayerController : MonoBehaviour
         Gizmos.DrawWireCube(wallCheckLeft.position, wallCheckBoxCastSizeLeft);
     }
 }
+//bugs :jumo incomplete when near wall

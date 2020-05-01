@@ -40,7 +40,6 @@ public class Health : MonoBehaviour
     }
     public virtual void Damage(int damage)
     {
-        Debug.Log(damage);
         if (!isAlive||isInvincible) return;
         if (health < damage)
         {
