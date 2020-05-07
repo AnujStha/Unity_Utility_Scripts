@@ -74,6 +74,7 @@ GameObject:
   - component: {fileID: 565853086125691811}
   - component: {fileID: 565853086125691810}
   - component: {fileID: 565853086125691814}
+  - component: {fileID: 4255636836952818966}
   m_Layer: 10
   m_Name: bouncingEnemy
   m_TagString: Untagged
@@ -233,6 +234,32 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &4255636836952818966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 565853086125691808}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcc635d1de401ac4882af032db09bec0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 10
+  isInvincible: 0
+  resurectEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  deadEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  damageEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  healEvent:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &565853086374585921
 GameObject:
   m_ObjectHideFlags: 0
