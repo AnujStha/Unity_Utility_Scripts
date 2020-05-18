@@ -10,6 +10,6 @@ public class spitAtPlayer : MonoBehaviour, IAttack
     {
         GameObject proj = Instantiate(projectile, transform.position, transform.rotation);
         IProjectile projectileScript = proj.GetComponent<IProjectile>();
-        projectileScript.throwAtPoint(gameData.player.transform.position, projectileSpeed,damage, damageLayers);
+        projectileScript.throwAtPoint(gameData.player.transform.position, projectileSpeed,damage, damageLayers,transform.parent.gameObject);
     }
 }

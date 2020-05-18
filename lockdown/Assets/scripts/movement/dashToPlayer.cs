@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
+using UnityEngine.Events;
 using UnityEngine;
 
 public class dashToPlayer : MonoBehaviour
@@ -11,8 +11,15 @@ public class dashToPlayer : MonoBehaviour
     private bool dashRight,dashing,isRecoveringFromDashCollide;
     private int normalMovementDirection;
     private float movementHorizontalVelocity;
+    public UnityEvent dashStartEvent, dashStopEvent, recoveryEndEvent;
     private Rigidbody2D rb;
 
+    private void Awake()
+    {
+        if (dashStartEvent == null) dashStartEvent = new UnityEvent();
+        if (dashStopEvent == null) dashStartEvent = new UnityEvent();
+        if (recoveryEndEvent == null) recoveryEndEvent = new UnityEvent();
+    }
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -48,11 +55,13 @@ public class dashToPlayer : MonoBehaviour
         dashing = false;
         movementHorizontalVelocity = 0;
         StartCoroutine(recovery());
+        dashStopEvent.Invoke();
     }
     IEnumerator recovery() {
         isRecoveringFromDashCollide = true;
         yield return new WaitForSeconds(recoveryPeriod);
         isRecoveringFromDashCollide = false;
+        recoveryEndEvent.Invoke();
     }
     IEnumerator movementCounter() {
         while (true){
@@ -70,25 +79,30 @@ public class dashToPlayer : MonoBehaviour
         dashRight = _dashRight;
         dashing = true;
         movementHorizontalVelocity = dashRight ? dashMovementSpeed : -dashMovementSpeed;
+        dashStartEvent.Invoke();
+        collideCheck();
+    }
+    void collideCheck() {
+        if (dashRight)
+        {
+            if (Physics2D.OverlapBox(collideCheckPointRight.position, collideCheckPointRightSize, 0, dashCollideWith) != null)
+            {
+                dashStop();
+            }
+        }
+        else
+        {
+            if (Physics2D.OverlapBox(collideCheckPointLeft.position, collideCheckPointLeftSize, 0, dashCollideWith) != null)
+            {
+                dashStop();
+            }
+        }
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (dashing)
         {
-            if (dashRight)
-            {
-                if (Physics2D.OverlapBox(collideCheckPointRight.position, collideCheckPointRightSize, 0, dashCollideWith) != null)
-                {
-                    dashStop();
-                }
-            }
-            else
-            {
-                if (Physics2D.OverlapBox(collideCheckPointLeft.position, collideCheckPointLeftSize, 0, dashCollideWith) != null)
-                {
-                    dashStop();
-                }
-            }
+            collideCheck();
         }
     }
     private void OnDrawGizmosSelected()
